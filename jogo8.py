@@ -15,10 +15,15 @@ ESTADO_ACAO = 1
 leaf_count = 1
 sucesso = 0
 
-VAZIO = "_"
-TEMP = 'X'
+VAZIO = 0
+TEMP = 9
 
 estados_conhecidos = set()
+
+def state_string_to_int(estado_string):
+    estado_string = estado_string.replace("_",f"{VAZIO}")
+    estado_int = [int(i) for i in estado_string]
+    return estado_int
 
 
 class Nodo():
@@ -84,13 +89,15 @@ def sucessor(estado_atual):
     jogadas = vizinhos[pos_vazio]
 
     for jogada in jogadas:
-        estado = estado_atual
+        estado = [i for i in estado_atual]
 
         peca_mover = estado[(jogada[PECA_MOVER])]
-        estado = estado.replace(VAZIO,TEMP)
-        estado = estado.replace(peca_mover,VAZIO)
-        estado = estado.replace(TEMP,peca_mover)
+
+        estado[(jogada[PECA_MOVER])] = VAZIO
+        estado[pos_vazio] = peca_mover
         sucessores.append((jogada[ACAO_FAZER],estado) )
+
+
 
     return sucessores
 
@@ -104,11 +111,17 @@ def expande(nodo):
 
     return nodos_filhos
 
-
+nodo_alvo = None
 explorados = []
-fronteira = deque([Nodo("2_3541687")])
+fronteira = deque([Nodo(state_string_to_int("2_3541687"))])
 
 def dfs(fronteira,explorados, alvo, profundidade = 56):
+    global sucesso
+    global nodo_alvo
+
+    if(sucesso):
+        return 1
+
     if profundidade == 0:
         return 0
 
@@ -119,24 +132,33 @@ def dfs(fronteira,explorados, alvo, profundidade = 56):
 
 
         if(nodo.estado == alvo):
-            estados_conhecidos.add(nodo.estado)
-            print(f"{profundidade=}\n")
-            print(f"{nodo}")
+            estados_conhecidos.add(str(nodo.estado))
+            #print(f"{profundidade=}\n")
+            #print(f"{nodo.estado}")
+
+
+            # next = nodo.pai
+            # while next is not None:
+            #     print (next.pai)
+            #     next = next.pai
+
+            nodo_alvo = nodo
+            sucesso = 1
             print("sucess!")
             return 1
 
-        if nodo not in explorados and nodo.estado not in estados_conhecidos:
+        if nodo not in explorados : #and str(nodo.estado) not in estados_conhecidos
             explorados.append(nodo)
-            estados_conhecidos.add(nodo.estado)
+            estados_conhecidos.add(str(nodo.estado))
 
             filhos = expande(nodo)
             for filho in filhos:
-                if filho not in explorados and filho.estado not in estados_conhecidos:
+                if str(filho.estado) not in estados_conhecidos: #filho not in explorados and
                     fronteira.append(filho)
-                    global sucesso
+
                     temp = dfs(fronteira,explorados,alvo,profundidade)
                     if (temp is not None):
-                        sucesso = temp
+                        sucesso = sucesso | temp
 
 
 
@@ -149,10 +171,15 @@ def dfs(fronteira,explorados, alvo, profundidade = 56):
         return 0
 
 
-print(dfs(fronteira,explorados, "12345678_"))
-print("12345678_" in estados_conhecidos)
-print(len(estados_conhecidos))
+print(dfs(fronteira,explorados, state_string_to_int("12345678_")))
+
+print(nodo_alvo.estado)
+next = nodo_alvo.pai
+while next is not None:
+    print (next.estado)
+    next = next.pai
 exit(0)
+
 
 
 
