@@ -2,6 +2,8 @@ from enum import Enum
 from tqdm import tqdm
 from collections import deque
 from time import sleep
+from threading import Thread
+from multiprocessing import Process,Lock,Queue
 
 class Acao(Enum):
     ESQUERDA = 1
@@ -19,6 +21,11 @@ VAZIO = 0
 TEMP = 9
 
 estados_conhecidos = set()
+objetivo = Queue()
+sync_queue = Queue()
+threads = []
+procs = []
+lock = Lock()
 
 def state_string_to_int(estado_string):
     estado_string = estado_string.replace("_",f"{VAZIO}")
@@ -113,71 +120,79 @@ def expande(nodo):
 
 nodo_alvo = None
 explorados = []
+
 fronteira = deque([Nodo(state_string_to_int("2_3541687"))])
 
-def dfs(fronteira,explorados, alvo, profundidade = 56):
-    global sucesso
-    global nodo_alvo
+#fronteira = deque([Nodo(state_string_to_int("672418_53"))])
 
-    if(sucesso):
-        return 1
+def dfs(sync_queue,lock,fronteira,explorados, alvo, profundidade = 56):
+
+    if(objetivo.empty() == False):
+        return
 
     if profundidade == 0:
-        return 0
+        return
 
     profundidade -= 1
 
     try:
         nodo = fronteira.pop()
 
-
-        if(nodo.estado == alvo):
-            estados_conhecidos.add(str(nodo.estado))
-            #print(f"{profundidade=}\n")
-            #print(f"{nodo.estado}")
+        if(nodo.estado == alvo and objetivo.empty() == True):
+            lock.acquire()
 
 
-            # next = nodo.pai
-            # while next is not None:
-            #     print (next.pai)
-            #     next = next.pai
+            if(objetivo.empty() == True and sync_queue.empty()):
+                objetivo.put(nodo)
+                sync_queue.put("done")
+                estados_conhecidos.add(str(nodo.estado))
+                print("sucesso abc")
+                sleep(1)
 
-            nodo_alvo = nodo
-            sucesso = 1
-            print("sucess!")
+
+            lock.release()
             return 1
 
-        if nodo not in explorados : #and str(nodo.estado) not in estados_conhecidos
-            explorados.append(nodo)
+        if str(nodo.estado) not in estados_conhecidos : #and str(nodo.estado) not in estados_conhecidos
+            lock.acquire()
             estados_conhecidos.add(str(nodo.estado))
+            lock.release()
 
             filhos = expande(nodo)
             for filho in filhos:
                 if str(filho.estado) not in estados_conhecidos: #filho not in explorados and
                     fronteira.append(filho)
-
-                    temp = dfs(fronteira,explorados,alvo,profundidade)
-                    if (temp is not None):
-                        sucesso = sucesso | temp
+                    dfs(sync_queue,lock,fronteira,explorados,alvo,profundidade)
 
 
 
 
 
 
-
-        return sucesso
+        return
     except IndexError:
-        return 0
+        return
 
 
-print(dfs(fronteira,explorados, state_string_to_int("12345678_")))
 
-print(nodo_alvo.estado)
-next = nodo_alvo.pai
-while next is not None:
-    print (next.estado)
-    next = next.pai
+
+for i in range(10):
+    proc = Process(target = dfs, args = (sync_queue,lock,fronteira,explorados,state_string_to_int("12345678_")))
+    procs.append(proc)
+    proc.start()
+
+for t in procs:
+    proc.join()
+
+
+
+
+nodo_alvo = objetivo.get()
+print(nodo_alvo)
+
+# while next is not None:
+#     print (next.estado)
+#     next = next.pai
 exit(0)
 
 
