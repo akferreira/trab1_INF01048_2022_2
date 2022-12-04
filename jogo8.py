@@ -20,9 +20,9 @@ sucesso = 0
 VAZIO = 0
 TEMP = 9
 
-estados_conhecidos = set()
+#estados_conhecidos = set()
 objetivo = Queue()
-sync_queue = Queue()
+sync_q = Queue()
 threads = []
 procs = []
 lock = Lock()
@@ -119,19 +119,27 @@ def expande(nodo):
     return nodos_filhos
 
 nodo_alvo = None
-explorados = []
+explorados = set()
 
 fronteira = deque([Nodo(state_string_to_int("2_3541687"))])
 
 #fronteira = deque([Nodo(state_string_to_int("672418_53"))])
 
-def dfs(sync_queue,lock,fronteira,explorados, alvo, profundidade = 56):
+def dfs(sync_q,plock,fronteira,explorados, alvo, profundidade = 56):
+    global estados_conhecidos
+    global lock
+    global sync_queue
 
-    if(objetivo.empty() == False):
-        return
+    lock = plock
+    sync_queue = sync_q
+    estados_conhecidos = explorados
 
     if profundidade == 0:
         return
+
+    if(objetivo.empty() == False or sync_queue.empty() == False):
+        return
+
 
     profundidade -= 1
 
@@ -146,7 +154,7 @@ def dfs(sync_queue,lock,fronteira,explorados, alvo, profundidade = 56):
                 objetivo.put(nodo)
                 sync_queue.put("done")
                 estados_conhecidos.add(str(nodo.estado))
-                print("sucesso abc")
+                print(len(estados_conhecidos))
                 sleep(1)
 
 
@@ -177,7 +185,7 @@ def dfs(sync_queue,lock,fronteira,explorados, alvo, profundidade = 56):
 
 
 for i in range(10):
-    proc = Process(target = dfs, args = (sync_queue,lock,fronteira,explorados,state_string_to_int("12345678_")))
+    proc = Process(target = dfs, args = (sync_q,lock,fronteira,explorados,state_string_to_int("12345678_")))
     procs.append(proc)
     proc.start()
 
@@ -190,9 +198,6 @@ for t in procs:
 nodo_alvo = objetivo.get()
 print(nodo_alvo)
 
-# while next is not None:
-#     print (next.estado)
-#     next = next.pai
 exit(0)
 
 
