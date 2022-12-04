@@ -1,4 +1,7 @@
 from enum import Enum
+from tqdm import tqdm
+from collections import deque
+from time import sleep
 
 class Acao(Enum):
     ESQUERDA = 1
@@ -6,10 +9,28 @@ class Acao(Enum):
     DIREITA = 3
     ABAIXO = 4
 
-PECA_MOVER = 0
-ACAO_FAZER = 1
+PECA_MOVER = 1
+ACAO_FAZER = 0
+ESTADO_ACAO = 1
+leaf_count = 1
+sucesso = 0
+
 VAZIO = "_"
 TEMP = 'X'
+
+estados_conhecidos = set()
+
+
+class Nodo():
+    def __init__(self,estado, acao = None, custo = 1,pai = None):
+        self.estado = estado
+        self.acao = acao
+        self.custo = custo
+        self.pai = pai
+
+    def __str__(self):
+        return f"\n______{self=}_______\n  {self.estado=}\n  {self.acao=}\n  {self.pai=}"
+
 
 
 #0 1 2
@@ -33,15 +54,15 @@ TEMP = 'X'
 
 
 vizinhos = {
-    0: [(3,Acao.ABAIXO),(1,Acao.DIREITA)],
-    1: [(0,Acao.ESQUERDA),(2,Acao.DIREITA),(4,Acao.ABAIXO)],
-    2: [(5, Acao.ABAIXO),(1,Acao.ESQUERDA)],
-    3: [(6,Acao.ABAIXO),(4,Acao.DIREITA),(0,Acao.ACIMA)],
-    4: [(1,Acao.ACIMA),(5,Acao.DIREITA),(3,Acao.ESQUERDA),(7,Acao.ABAIXO)],
-    5: [(8,Acao.ABAIXO),(4,Acao.ESQUERDA),(2,Acao.ACIMA)],
-    6: [(7,Acao.DIREITA),(3,Acao.ACIMA)],
-    7: [(4,Acao.ACIMA),(6,Acao.ESQUERDA),(8,Acao.DIREITA)],
-    8: [(7,Acao.ESQUERDA),(5,Acao.ACIMA)]
+    0: [(Acao.ABAIXO,3),(Acao.DIREITA,1)],
+    1: [(Acao.DIREITA,2),(Acao.ABAIXO,4),(Acao.ESQUERDA,0)],
+    2: [(Acao.ESQUERDA,1),(Acao.ABAIXO,5)],
+    3: [(Acao.ABAIXO,6),(Acao.DIREITA,4),(Acao.ACIMA,0)],
+    4: [(Acao.ACIMA,1),(Acao.DIREITA,5),(Acao.ESQUERDA,3),(Acao.ABAIXO,7)],
+    5: [(Acao.ABAIXO,8),(Acao.ESQUERDA,4),(Acao.ACIMA,2)],
+    6: [(Acao.DIREITA,7),(Acao.ACIMA,3)],
+    7: [(Acao.ACIMA,4),(Acao.ESQUERDA,6),(Acao.DIREITA,8)],
+    8: [(Acao.ESQUERDA,7),(Acao.ACIMA,5)]
 
 }
 
@@ -57,7 +78,6 @@ def invCount(tabuleiro):
 
 
 def sucessor(estado_atual):
-    #print(f"{estado_atual.index(VAZIO)}")
     sucessores = []
 
     pos_vazio = estado_atual.index(VAZIO)
@@ -74,33 +94,66 @@ def sucessor(estado_atual):
 
     return sucessores
 
+def expande(nodo):
+    jogadas = sucessor(nodo.estado)
+
+    nodos_filhos = []
+    for jogada in jogadas:
+        nodos_filhos.append(Nodo(jogada[ESTADO_ACAO],jogada[ACAO_FAZER],custo =1, pai = nodo))
 
 
-print(invCount('123456_87'))
-print(invCount('2_3541687'))
-
-#print(sucessor('2_3541687'))
-inicial = sucessor('123456_87')
-next = inicial
+    return nodos_filhos
 
 
-for x in range(200000):
+explorados = []
+fronteira = deque([Nodo("2_3541687")])
+
+def dfs(fronteira,explorados, alvo, profundidade = 56):
+    if profundidade == 0:
+        return 0
+
+    profundidade -= 1
+
     try:
-        current = next.pop()
-        if(current[1] == "12345678_"):
-            print("sucess")
-            print(i*x)
-            break
-        else:
-            for resultado in sucessor(current[1]):
-                next.append(resultado)
+        nodo = fronteira.pop()
+
+
+        if(nodo.estado == alvo):
+            estados_conhecidos.add(nodo.estado)
+            print(f"{profundidade=}\n")
+            print(f"{nodo}")
+            print("sucess!")
+            return 1
+
+        if nodo not in explorados and nodo.estado not in estados_conhecidos:
+            explorados.append(nodo)
+            estados_conhecidos.add(nodo.estado)
+
+            filhos = expande(nodo)
+            for filho in filhos:
+                if filho not in explorados and filho.estado not in estados_conhecidos:
+                    fronteira.append(filho)
+                    global sucesso
+                    temp = dfs(fronteira,explorados,alvo,profundidade)
+                    if (temp is not None):
+                        sucesso = temp
+
+
+
+
+
+
+
+        return sucesso
     except IndexError:
-        next = current
-        break
+        return 0
 
-    if(next == "12345678_"):
-        print("sucess")
-        print(i*x)
-        break
 
-print(next)
+print(dfs(fronteira,explorados, "12345678_"))
+print("12345678_" in estados_conhecidos)
+print(len(estados_conhecidos))
+exit(0)
+
+
+
+
