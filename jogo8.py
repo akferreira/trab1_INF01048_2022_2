@@ -26,12 +26,7 @@ sucesso = 0
 VAZIO = 0
 TEMP = 9
 
-#estados_conhecidos = set()
-objetivo = Queue()
 
-sync_q = Queue()
-threads = []
-procs = []
 
 def state_string_to_int(estado_string):
     estado_string = estado_string.replace("_",f"{VAZIO}")
@@ -180,7 +175,7 @@ def caminho_sv(nodo):
 
 
 
-def astar(heuristica,objetivo,fronteira,explorados, alvo, profundidade = 56):
+def astar(heuristica,fronteira,explorados, alvo, profundidade = 56):
 
     estados_conhecidos = explorados
     print(heuristica)
@@ -190,19 +185,13 @@ def astar(heuristica,objetivo,fronteira,explorados, alvo, profundidade = 56):
             if(nodo.custo > 56):
                 return
 
-            if(nodo.estado == alvo and objetivo.empty() == True):
+            if(nodo.estado == alvo):
+                caminho_solucao = caminho_sv(nodo)
+                estados_conhecidos.add(str(nodo.estado)+f".{nodo.custo}")
+                print(nodo)
 
 
-                if(objetivo.empty() == True):
-                    caminho_solucao = caminho_sv(nodo)
-                    print(caminho_solucao)
-                    objetivo.put(caminho_solucao)
-                    estados_conhecidos.add(str(nodo.estado)+f".{nodo.custo}")
-                    print(nodo)
-                    print(len(estados_conhecidos))
-
-
-                return 1
+                return caminho_solucao
 
 
             while((str(nodo.estado) + f".{nodo.custo}") in estados_conhecidos):
@@ -220,29 +209,57 @@ def astar(heuristica,objetivo,fronteira,explorados, alvo, profundidade = 56):
 
             nodo = fronteira.get(block = False)[1]
         except qEmpty:
-            print("excp")
             return
           
-    print("aaaa")
     return
 
 
-def astar_hamming(objetivo,fronteira,explorados, alvo, profundidade = 56):
-  heuristica = hamming_distance
-  resultado = astar(heuristica,objetivo,fronteira,explorados, alvo, profundidade = 56)
+def astar_hamming(estado):
+  explorados = set()
+  sync_q = Queue()
+  fronteira = PriorityQueue()
+  fronteira.put((0,Nodo(state_string_to_int(estado))) )
+
+  resultado = astar_hamming_i(fronteira,explorados,state_string_to_int("12345678_"))
   return resultado
 
-def astar_manhattan(objetivo,fronteira,explorados, alvo, profundidade = 56):
+def astar_manhattan(estado):
+  explorados = set()
+  sync_q = Queue()
+  fronteira = PriorityQueue()
+  fronteira.put((0,Nodo(state_string_to_int(estado))) )
+
+  resultado = astar_manhattan_i(fronteira,explorados,state_string_to_int("12345678_"))
+  return resultado
+
+
+
+def astar_hamming_i(fronteira,explorados, alvo, profundidade = 56):
+  heuristica = hamming_distance
+  resultado = astar(heuristica,fronteira,explorados, alvo, profundidade = 56)
+  return resultado
+
+def astar_manhattan_i(fronteira,explorados, alvo, profundidade = 56):
   heuristica = manhattan_distance
-  resultado = astar(heuristica,objetivo,fronteira,explorados, alvo, profundidade = 56)
+  resultado = astar(heuristica,fronteira,explorados, alvo, profundidade = 56)
   return resultado 
 
-def bfs(objetivo,fronteira,explorados, alvo, profundidade = 56):
+
+def bfs(estado = "2_3541687"):
+  fronteira = deque([Nodo(state_string_to_int(estado))])
+  alvo = state_string_to_int("12345678_")
+  explorados = set()
+
+  return bfs_i(fronteira,explorados,alvo)
+
+def bfs_i(fronteira,explorados, alvo, profundidade = 56):
     global estados_conhecidos
+    global total_explorados
     estados_conhecidos = explorados
 
     nodo = fronteira.popleft()
     while(nodo.custo <= 56):
+        total_explorados = len(estados_conhecidos)
         try:
             if(nodo.custo > 56):
                 return
@@ -250,10 +267,8 @@ def bfs(objetivo,fronteira,explorados, alvo, profundidade = 56):
             while str(nodo.estado) in estados_conhecidos:
                 nodo = fronteira.popleft()
 
-            if(nodo.estado == alvo and objetivo.empty() == True):
+            if(nodo.estado == alvo):
                 caminho_solucao = caminho_sv(nodo)
-                print(caminho_solucao)
-                objetivo.put(caminho_solucao)
                 estados_conhecidos.add(str(nodo.estado))
                 print(nodo)
                 return caminho_solucao
@@ -276,9 +291,15 @@ def bfs(objetivo,fronteira,explorados, alvo, profundidade = 56):
             return
 
 
+def dfs(estado):
+  fronteira = deque([Nodo(state_string_to_int(estado))])
+  alvo = state_string_to_int("12345678_")
+  explorados = set()
 
+  resultado = dfs_i(fronteira,explorados,alvo)
+  return resultado
 
-def dfs(fronteira,explorados, alvo, profundidade = 100):
+def dfs_i(fronteira,explorados, alvo, profundidade = 80):
     global estados_conhecidos 
     global sucesso
     global total_explorados
@@ -300,7 +321,7 @@ def dfs(fronteira,explorados, alvo, profundidade = 100):
         while str(nodo.estado) in estados_conhecidos:
           nodo = fronteira.pop()
        
-        if(nodo.estado == alvo and objetivo.empty() == True):
+        if(nodo.estado == alvo):
             caminho_solucao = caminho_sv(nodo)
             print(caminho_solucao)
             sucesso = True 
@@ -315,11 +336,11 @@ def dfs(fronteira,explorados, alvo, profundidade = 100):
         if str(nodo.estado) not in estados_conhecidos : #and str(nodo.estado) not in estados_conhecidos
             estados_conhecidos.add(str(nodo.estado))
 
-            filhos = expande_shuffle(nodo)
+            filhos = expande(nodo)
             for filho in filhos:
                 if str(filho.estado) not in estados_conhecidos and profundidade > 0: #filho not in explorados and
                     fronteira.append(filho)
-                    resultado = dfs(fronteira,explorados,alvo,profundidade)
+                    resultado = dfs_i(fronteira,explorados,alvo,profundidade)
 
                     if(resultado):
                       caminho = resultado
@@ -341,45 +362,30 @@ print("\n ______ASTAR MANHTANN_______\n")
 
 t1 = time()
 
-nodo_alvo = None
-explorados = set()
-lock = Lock()
-xlock = Lock()
-objetivo = Queue()
 
-fronteira = PriorityQueue()
-fronteira.put((0,Nodo(state_string_to_int("2_3541687"))) )
-astar_manhattan(objetivo,fronteira,explorados,state_string_to_int("12345678_"))
+resultado = astar_manhattan("2_3541687")
+print(f"{resultado=} \n")
 
 
 print("\n ______ASTAR HAMMING_______\n")
 t2 = time()
-
-objetivo = Queue()
-explorados = set()
-sync_q = Queue()
-fronteira = PriorityQueue()
-fronteira.put((0,Nodo(state_string_to_int("2_3541687"))) )
-astar_hamming(objetivo,fronteira,explorados,state_string_to_int("12345678_"))
+resultado = astar_hamming("2_3541687")
+print(f"{resultado=} \n")
 
 
 print("\n ______BFS_______\n")
 
 t3  = time()
 
-fronteira = deque([Nodo(state_string_to_int("2_3541687"))])
-objetivo = Queue()
-explorados = set()
-resultado = bfs(objetivo,fronteira,explorados,state_string_to_int("12345678_"))
-print(f"{resultado=}")
+resultado = bfs("2_3541687")
+print(f"{resultado=} \n{total_explorados=}")
 
 print("\n ______DFS_______\n")
 t4  = time()
 
-fronteira = deque([Nodo(state_string_to_int("2_5341687"))])
-sync_q = Queue()
-explorados = set()
-resultado = dfs(fronteira,explorados,state_string_to_int("12345678_"))
+
+
+resultado = dfs("2_3541687")
 print(f"{resultado=} \n{total_explorados=}")
 
 t5 = time()
@@ -388,8 +394,3 @@ print(f"astar manhattan time {t2-t1}")
 print(f"astar hamming time {t3-t2}")
 print(f"bfs time {t4-t3}")
 print(f"dfs time {t5-t4}")
-
-
-
-
-
