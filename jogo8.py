@@ -91,6 +91,9 @@ def invCount(tabuleiro):
 
     return inv_count
 
+'''
+Função que calcula a distância manhattan entre dois estados, sendo o segundo estado considerado o alvo do solver
+'''
 def manhattan_distance(estado1,estado2):
   distancia = 0
   estado1 = [e for e in estado1 if e>0]
@@ -103,6 +106,9 @@ def manhattan_distance(estado1,estado2):
 
   return distancia
 
+'''
+Função que calcula a distância de hamming entre dois estados, sendo o segundo estado considerado o alvo do solver
+'''
 def hamming_distance(estado1,estado2):
     estado1 = [e for e in estado1 if e>0]
     estado2 = [e for e in estado2 if e>0]
@@ -110,6 +116,10 @@ def hamming_distance(estado1,estado2):
     return hamming(estado1,estado2)*8
 
 
+'''Função geradora de sucessores usada pelo programa. Por questões de otimização, o estado do tabuleiro usado internamente
+é um array de inteiros em vez de uma string. Sendo o 0 o espaço vazio
+
+'''
 def sucessor_int(estado_atual,teste = False):
 
     sucessores = []
@@ -130,6 +140,7 @@ def sucessor_int(estado_atual,teste = False):
 
     return sucessores
 
+#Função sucessor exposta ao testador. Resultados em formato string
 def sucessor(estado_atual):
   if(type(estado_atual) is str):
       estado_atual = state_string_to_int(estado_atual)
@@ -159,10 +170,11 @@ def expande_shuffle(nodo,heuristica = None):
     return nodos
 
 
+'''
+Função que percorre o caminho no grafo de um nodo até a raiz. Retorna a lista de ações que leva do nodo raiz até o nodo alvo
+'''
 def caminho_sv(nodo):
   caminho = []
-
-
   while(nodo.pai is not None):
       caminho.append(nodo.acao)
       nodo = nodo.pai
@@ -174,7 +186,10 @@ def caminho_sv(nodo):
 
 
 
-
+'''
+Base do algoritmo de busca astar. A heuristica utilizada determina o seu tipo, e essa é passada como parâmetro pelos algoritmos astar
+específicos (astar hamming e astar manhattan)
+'''
 def astar(heuristica,fronteira,explorados, alvo, profundidade = 56):
 
     estados_conhecidos = explorados
@@ -214,6 +229,9 @@ def astar(heuristica,fronteira,explorados, alvo, profundidade = 56):
     return
 
 
+'''
+As duas funções a seguir são as interfaces expostas dos algoritmos de busca astar. Recebem o estado inicial para resolução do grafo
+'''
 def astar_hamming(estado):
   explorados = set()
   sync_q = Queue()
@@ -233,7 +251,11 @@ def astar_manhattan(estado):
   return resultado
 
 
+#############################
 
+'''
+Funções internas para os algoritmos de busca astar
+'''
 def astar_hamming_i(fronteira,explorados, alvo, profundidade = 56):
   heuristica = hamming_distance
   resultado = astar(heuristica,fronteira,explorados, alvo, profundidade = 56)
@@ -245,6 +267,7 @@ def astar_manhattan_i(fronteira,explorados, alvo, profundidade = 56):
   return resultado 
 
 
+'''Interface e função interna para o algoritmo bfs'''
 def bfs(estado = "2_3541687"):
   fronteira = deque([Nodo(state_string_to_int(estado))])
   alvo = state_string_to_int("12345678_")
@@ -290,7 +313,7 @@ def bfs_i(fronteira,explorados, alvo, profundidade = 56):
         except IndexError:
             return
 
-
+'''Interface e função interna para o algoritmo dfs'''
 def dfs(estado):
   fronteira = deque([Nodo(state_string_to_int(estado))])
   alvo = state_string_to_int("12345678_")
@@ -394,3 +417,8 @@ print(f"astar manhattan time {t2-t1}")
 print(f"astar hamming time {t3-t2}")
 print(f"bfs time {t4-t3}")
 print(f"dfs time {t5-t4}")
+
+
+
+
+
