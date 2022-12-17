@@ -35,7 +35,7 @@ def state_string_to_int(estado_string):
 
 
 class Nodo():
-    def __init__(self,estado, acao = None, custo = 0,pai = None, heuristica = None):
+    def __init__(self,estado = None,pai = None, acao = None, custo = 0, heuristica = None):
         self.estado = estado
         self.acao = acao
         self.custo = custo
@@ -46,7 +46,7 @@ class Nodo():
           self.heuristica = heuristica
 
         self.total = self.custo+self.heuristica(self.estado,self.estado_objetivo)
-        
+
 
     def __str__(self):
         return f"\n______{self=}_______\n  {self.estado=}\n  {self.acao=}\n  {self.pai=}\n  {self.custo=}\n  {self.total=}\n"
@@ -58,7 +58,7 @@ class Nodo():
       return self.total < nodo2.total
 
     def __eq__(self, nodo2):
-      return self.total == nodo2.total      
+      return self.total == nodo2.total
 
     def heuristica(self, estado, estado_objetivo):
       return 0
@@ -120,7 +120,7 @@ def hamming_distance(estado1,estado2):
 é um array de inteiros em vez de uma string. Sendo o 0 o espaço vazio
 
 '''
-def sucessor_int(estado_atual,teste = False):
+def sucessor_int(estado_atual):
 
     sucessores = []
 
@@ -150,22 +150,28 @@ def sucessor(estado_atual):
 
   for sucs in sucessores_int:
     estado = "".join(str(sucs[ESTADO_ACAO]).strip(']').strip('[').replace(" ","").replace(",","").replace("0","_"))
-    sucessores.append( (sucs[ACAO_FAZER]),estado)
+    sucessores.append( (sucs[ACAO_FAZER],estado))
 
   return sucessores
 
 
-def expande(nodo,heuristica = None):
-    jogadas = sucessor_int(nodo.estado)
+def expande(nodo,heuristica = None, teste = True):
+    jogadas = []
+
+    if (teste):
+        jogadas = sucessor(nodo.estado)
+    else:
+        jogadas = sucessor_int(nodo.estado)
     nodos_filhos = []
     for jogada in jogadas:
-        nodos_filhos.append(Nodo(jogada[ESTADO_ACAO],jogada[ACAO_FAZER],nodo.custo+1, pai = nodo, heuristica = heuristica))
+
+        nodos_filhos.append(Nodo(estado = jogada[ESTADO_ACAO],acao = jogada[ACAO_FAZER],custo = nodo.custo+1, pai = nodo, heuristica = heuristica))
 
 
     return nodos_filhos
 
 def expande_shuffle(nodo,heuristica = None):
-    nodos = expande(nodo,heuristica)
+    nodos = expande(nodo,heuristica, teste = False)
     random.shuffle(nodos)
     return nodos
 
@@ -193,7 +199,6 @@ específicos (astar hamming e astar manhattan)
 def astar(heuristica,fronteira,explorados, alvo, profundidade = 56):
 
     estados_conhecidos = explorados
-    print(heuristica)
     nodo = fronteira.get(block = False)[1]
     while(nodo.custo <= 56):
         try:
@@ -202,7 +207,7 @@ def astar(heuristica,fronteira,explorados, alvo, profundidade = 56):
 
             if(nodo.estado == alvo):
                 caminho_solucao = caminho_sv(nodo)
-                estados_conhecidos.add(str(nodo.estado)+f".{nodo.custo}")
+                estados_conhecidos.add(str(nodo.estado)+f".{nodo.custo % 2}")
                 print(nodo)
 
 
@@ -213,11 +218,11 @@ def astar(heuristica,fronteira,explorados, alvo, profundidade = 56):
                nodo = fronteira.get(block = False)[1]
 
             if str(nodo.estado) not in estados_conhecidos : #and str(nodo.estado) not in estados_conhecidos
-                estados_conhecidos.add(str(nodo.estado)+f".{nodo.custo}")
-                filhos = expande(nodo, heuristica)
+                estados_conhecidos.add(str(nodo.estado)+f".{nodo.custo % 2}")
+                filhos = expande(nodo, heuristica, teste = False)
 
                 for filho in filhos:
-                    if (str(filho.estado)+f".{filho.custo}") not in estados_conhecidos: #filho not in explorados and
+                    if (str(filho.estado)+f".{filho.custo % 2}") not in estados_conhecidos: #filho not in explorados and
                         fronteira.put( (filho.total,filho))
                     else:
                         continue
@@ -225,7 +230,7 @@ def astar(heuristica,fronteira,explorados, alvo, profundidade = 56):
             nodo = fronteira.get(block = False)[1]
         except qEmpty:
             return
-          
+
     return
 
 
@@ -264,7 +269,7 @@ def astar_hamming_i(fronteira,explorados, alvo, profundidade = 56):
 def astar_manhattan_i(fronteira,explorados, alvo, profundidade = 56):
   heuristica = manhattan_distance
   resultado = astar(heuristica,fronteira,explorados, alvo, profundidade = 56)
-  return resultado 
+  return resultado
 
 
 '''Interface e função interna para o algoritmo bfs'''
@@ -293,7 +298,6 @@ def bfs_i(fronteira,explorados, alvo, profundidade = 56):
             if(nodo.estado == alvo):
                 caminho_solucao = caminho_sv(nodo)
                 estados_conhecidos.add(str(nodo.estado))
-                print(nodo)
                 return caminho_solucao
 
 
@@ -323,7 +327,7 @@ def dfs(estado):
   return resultado
 
 def dfs_i(fronteira,explorados, alvo, profundidade = 80):
-    global estados_conhecidos 
+    global estados_conhecidos
     global sucesso
     global total_explorados
 
@@ -343,23 +347,22 @@ def dfs_i(fronteira,explorados, alvo, profundidade = 80):
 
         while str(nodo.estado) in estados_conhecidos:
           nodo = fronteira.pop()
-       
+
         if(nodo.estado == alvo):
             caminho_solucao = caminho_sv(nodo)
             print(caminho_solucao)
-            sucesso = True 
+            sucesso = True
             estados_conhecidos.add(str(nodo.estado))
-            print(nodo)
             caminho = caminho_solucao
 
 
             return caminho_solucao
 
-        
+
         if str(nodo.estado) not in estados_conhecidos : #and str(nodo.estado) not in estados_conhecidos
             estados_conhecidos.add(str(nodo.estado))
 
-            filhos = expande(nodo)
+            filhos = expande(nodo, teste = False)
             for filho in filhos:
                 if str(filho.estado) not in estados_conhecidos and profundidade > 0: #filho not in explorados and
                     fronteira.append(filho)
@@ -374,49 +377,57 @@ def dfs_i(fronteira,explorados, alvo, profundidade = 80):
         print("a\n")
         return caminho
 
-    return caminho  
-
-fronteira = Queue()
-#fronteira = deque([Nodo(state_string_to_int("2_3541687"))])
-
-#fronteira = deque([Nodo(state_string_to_int("672418_53"))])
-
-print("\n ______ASTAR MANHTANN_______\n")
-
-t1 = time()
+    return caminho
 
 
-resultado = astar_manhattan("2_3541687")
-print(f"{resultado=} \n")
+if __name__ == '__main__':
+    #fronteira = deque([Nodo(state_string_to_int("2_3541687"))])
+
+    #fronteira = deque([Nodo(state_string_to_int("672418_53"))])
+    estado_pai = "185432_67"
+    pai = Nodo(estado_pai, None, "abaixo", 2)
+    resposta = expande(pai)
+    print(resposta)
 
 
-print("\n ______ASTAR HAMMING_______\n")
-t2 = time()
-resultado = astar_hamming("2_3541687")
-print(f"{resultado=} \n")
+    print("\n ______ASTAR MANHTANN_______\n")
+
+    t1 = time()
 
 
-print("\n ______BFS_______\n")
-
-t3  = time()
-
-resultado = bfs("2_3541687")
-print(f"{resultado=} \n{total_explorados=}")
-
-print("\n ______DFS_______\n")
-t4  = time()
+    resultado = astar_manhattan("2_3541687")
+    print(f"{resultado=} \n")
 
 
+    print("\n ______ASTAR HAMMING_______\n")
+    t2 = time()
+    resultado = astar_hamming("2_3541687")
+    print(f"{resultado=} \n")
 
-resultado = dfs("2_3541687")
-print(f"{resultado=} \n{total_explorados=}")
 
-t5 = time()
+    print("\n ______BFS_______\n")
 
-print(f"astar manhattan time {t2-t1}")
-print(f"astar hamming time {t3-t2}")
-print(f"bfs time {t4-t3}")
-print(f"dfs time {t5-t4}")
+    t3  = time()
+
+    resultado = bfs("2_3541687")
+    print(f"{resultado=} \n{total_explorados=}")
+
+    print("\n ______DFS_______\n")
+    t4  = time()
+
+
+
+    resultado = dfs("2_3541687")
+    print(f"{resultado=} \n{total_explorados=}")
+
+    t5 = time()
+
+
+
+    print(f"astar manhattan time {t2-t1}")
+    print(f"astar hamming time {t3-t2}")
+    print(f"bfs time {t4-t3}")
+    print(f"dfs time {t5-t4}")
 
 
 
